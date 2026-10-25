@@ -20,7 +20,8 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChatController {
+public class ChatController { 
+    //Atributos de la vista grafica (fxml)
     @FXML private Label statusLabel;
     @FXML private ScrollPane conversationScroll;
     @FXML private VBox messagesBox;
@@ -30,7 +31,7 @@ public class ChatController {
     @FXML private Button stopButton;
     @FXML private Button sendButton;
 
-    private final ChatService chatService = new ChatService();
+    private final ChatService chatService = new ChatService(); //Objecto encargado de la comunicacion con la API
     private final List<ChatMessage> conversation = new ArrayList<>();
 
     private byte[] imageBytes;
@@ -46,13 +47,13 @@ public class ChatController {
         stopButton.setOnAction(event -> stopRequest());
     }
 
-    private void attachImage() {
+    private void attachImage() { //Abre el explorador de archivos para poder enviar una imagen
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Selecciona una imagen");
         chooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg", "*.webp"));
 
-        Window owner = messageInput.getScene() == null ? null : messageInput.getScene().getWindow();
+        Window owner = messageInput.getScene() == null ? null : messageInput.getScene().getWindow(); //Obtiene la ventana principal 
         File file = chooser.showOpenDialog(owner);
         if (file == null) {
             return;
@@ -70,7 +71,7 @@ public class ChatController {
         }
     }
 
-    private String mimeType(File file) throws IOException {
+    private String mimeType(File file) throws IOException { //Indica al servidor el tipo de la imagen
         String name = file.getName().toLowerCase();
         if (name.endsWith(".png")) return "image/png";
         if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
@@ -81,7 +82,7 @@ public class ChatController {
         throw new IOException("Formato de imagen no compatible");
     }
 
-    private void showImagePreview() {
+    private void showImagePreview() { //Para poder ver un preview de la imagen
         attachmentPreview.getChildren().clear();
 
         ImageView thumbnail = new ImageView(new Image(new ByteArrayInputStream(imageBytes)));
@@ -98,7 +99,7 @@ public class ChatController {
         attachmentPreview.setVisible(true);
     }
 
-    private void clearImage() {
+    private void clearImage() { //Borrar la imagen 
         imageBytes = null;
         imageMimeType = null;
         imageName = null;
@@ -107,10 +108,10 @@ public class ChatController {
         attachmentPreview.setManaged(false);
     }
 
-    private void sendMessage() {
+    private void sendMessage() { //Recoge el texto del mensaje y si hay una imagen, lo guarda como un mensaje 
         if (activeRequest != null) return;
 
-        String text = messageInput.getText() == null ? "" : messageInput.getText().trim();
+        String text = messageInput.getText().trim();
         if (imageBytes == null && text.isEmpty()) return;
         if (imageBytes != null && text.isEmpty()) text = "Describe this image.";
 
@@ -123,7 +124,7 @@ public class ChatController {
         }
 
         ChatMessage userMessage = new ChatMessage(
-                "user", text, imageBytes, imageMimeType, imageName);
+                "user", text, imageBytes, imageMimeType);
         conversation.add(userMessage);
         addConversationMessage(userMessage);
 
@@ -157,35 +158,30 @@ public class ChatController {
             });
         }
 
-        request.setOnSucceeded(event -> {
+        request.setOnSucceeded(event -> { //Cuando se envia con exito 
             if (activeRequest != request) return;
 
             String answer = request.getValue();
             if (imageRequest) {
                 addTextMessage("assistant", answer);
             }
-            conversation.add(new ChatMessage("assistant", answer, null, null, null));
+            conversation.add(new ChatMessage("assistant", answer, null, null));
             finishRequest("Listo");
         });
 
-        request.setOnFailed(event -> {
+        request.setOnFailed(event -> { //En caso de que falle el mensaje 
             if (activeRequest == request) {
                 showRequestError(request.getException());
             }
         });
 
-        request.setOnCancelled(event -> {
-            if (activeRequest == request) {
-                finishRequest("Detenido");
-            }
-        });
 
         Thread worker = new Thread(request, "ieti-chat-request");
         worker.setDaemon(true);
         worker.start();
     }
 
-    private void stopRequest() {
+    private void stopRequest() {//Cancela la petición 
         if (activeRequest == null) return;
 
         ChatService.ChatRequest request = activeRequest;
@@ -193,12 +189,10 @@ public class ChatController {
         request.stopRequest();
 
         if (streamingAnswer != null && !streamingAnswer.getText().isBlank()) {
-            conversation.add(new ChatMessage("assistant", streamingAnswer.getText(), null, null, null));
+            conversation.add(new ChatMessage("assistant", streamingAnswer.getText(), null, null));
         }
 
-        streamingAnswer = null;
-        setBusy(false);
-        statusLabel.setText("Detenido");
+        finishRequest("Detenido");
     }
 
     private void showRequestError(Throwable error) {
@@ -225,7 +219,7 @@ public class ChatController {
         scrollToBottom();
     }
 
-    private void addConversationMessage(ChatMessage message) {
+    private void addConversationMessage(ChatMessage message) { //Para poder ver el mensaje en la conversacion
         Label text = new Label(message.getText());
         text.setWrapText(true);
         text.setMaxWidth(560);
@@ -250,7 +244,7 @@ public class ChatController {
     private void addMessageRow(String role, Label text, ImageView image) {
         VBox content = new VBox(6);
         content.setMaxWidth(580);
-        if (text != null) content.getChildren().add(text);
+        content.getChildren().add(text);
         if (image != null) content.getChildren().add(image);
 
         HBox row = new HBox(content);

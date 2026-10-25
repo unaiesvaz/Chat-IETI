@@ -17,11 +17,11 @@ import java.nio.file.Path;
 import java.util.Base64;
 import java.util.List;
 
-public final class ChatService {
+public final class ChatService { //Clase encargada de realizar peticiones a la IA
     private static final String BASE_URL = "https://agents.ieti.site/v1";
     private static final String DEFAULT_MODEL = "Qwen38";
 
-    public void validateConfiguration() {
+    public void validateConfiguration() { //Combrueba que la Clave exista 
         if (readApiKey().isBlank()) {
             throw new IllegalStateException(
                     "No encuentro la clave IETI en " + keyFilePath() + " ni en IETI_API_KEY.");
@@ -32,11 +32,10 @@ public final class ChatService {
     }
 
     public ChatRequest createRequest(List<ChatMessage> messages, boolean stream) {
-        validateConfiguration();
-        return new ChatRequest(readApiKey(), model(), buildRequest(messages, stream), stream);
+        return new ChatRequest(readApiKey(), buildRequest(messages, stream), stream);
     }
 
-    private JSONObject buildRequest(List<ChatMessage> messages, boolean stream) {
+    private JSONObject buildRequest(List<ChatMessage> messages, boolean stream) { //Construye el JSON que espera la API
         JSONArray jsonMessages = new JSONArray();
 
         for (ChatMessage message : messages) {
@@ -68,8 +67,8 @@ public final class ChatService {
                 .put("messages", jsonMessages);
     }
 
-    private String readApiKey() {
-        String fromEnvironment = System.getenv("IETI_API_KEY");
+    private String readApiKey() { //Lee la API 
+        String fromEnvironment = System.getenv("IETI_API_KEY"); //Para configurar la API Key 
         if (fromEnvironment != null && !fromEnvironment.isBlank()) {
             return fromEnvironment.trim();
         }
@@ -85,7 +84,7 @@ public final class ChatService {
         return "";
     }
 
-    private Path keyFilePath() {
+    private Path keyFilePath() { //Busca la API KEY en local
         String xdg = System.getenv("XDG_CONFIG_HOME");
         Path configFolder = xdg == null || xdg.isBlank()
                 ? Path.of(System.getProperty("user.home"), ".config")
@@ -100,14 +99,12 @@ public final class ChatService {
 
     public static final class ChatRequest extends Task<String> {
         private final String apiKey;
-        private final String model;
         private final JSONObject requestBody;
         private final boolean stream;
         private volatile HttpURLConnection connection;
 
-        private ChatRequest(String apiKey, String model, JSONObject requestBody, boolean stream) {
+        private ChatRequest(String apiKey, JSONObject requestBody, boolean stream) {
             this.apiKey = apiKey;
-            this.model = model;
             this.requestBody = requestBody;
             this.stream = stream;
         }
@@ -218,7 +215,7 @@ public final class ChatService {
             return answer.toString();
         }
 
-        private String readCompleteResponse(String responseBody) throws IOException {
+        private String readCompleteResponse(String responseBody) throws IOException { //Procesa la respuesta JSON completa
             JSONObject json = new JSONObject(responseBody);
             JSONObject error = json.optJSONObject("error");
             if (error != null) {
@@ -236,7 +233,7 @@ public final class ChatService {
             return answer;
         }
 
-        private String textFrom(Object value) {
+        private String textFrom(Object value) { //Obtiene texto de varios formatos posibles
             if (value instanceof String text) {
                 return text;
             }
@@ -256,7 +253,7 @@ public final class ChatService {
             return "";
         }
 
-        private String errorMessage(String body) {
+        private String errorMessage(String body) { //Extrae el mensaje de error
             try {
                 JSONObject json = new JSONObject(body);
                 JSONObject error = json.optJSONObject("error");
